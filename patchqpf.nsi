@@ -22,7 +22,7 @@ Section "Install"
 	ExecWait 'sc stop PatchQPF'
 	ExecWait 'sc delete PatchQPF'
 
-	File "patchqpf.exe" "pqpf014c.dll" "pqpf8664.dll" "LICENSE.rtf"
+	File "patchqpf.exe" "pqpf014c.dll" "pqpf8664.dll" "LICENSE.rtf" "sysinfo.exe"
 
 	WriteRegStr HKLM ${REG_EVENTLOG} EventMessageFile $SYSDIR\kernel32.dll
 	WriteRegDWORD HKLM ${REG_EVENTLOG} TypesSupported 7
@@ -46,6 +46,7 @@ Section "Uninstall"
 	Delete /REBOOTOK "$INSTDIR\pqpf014c.dll"
 	Delete /REBOOTOK "$INSTDIR\pqpf8664.dll"
 	Delete /REBOOTOK "$INSTDIR\LICENSE.rtf"
+	Delete /REBOOTOK "$INSTDIR\sysinfo.exe"
 	Delete /REBOOTOK "$INSTDIR\uninst.exe"
 	RMDir /REBOOTOK "$INSTDIR"
 

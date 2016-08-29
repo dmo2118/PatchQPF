@@ -1,13 +1,13 @@
-CFLAGS=-DUNICODE -D_UNICODE -Wall -static-libgcc
+CFLAGS=-DUNICODE -D_UNICODE -Wall -static-libgcc -municode
 LDLIBS=-lpsapi
 
 FILES=PatchQPF.exe pqpf014c.dll pqpf8664.dll
 INSTALL=PatchQPF-install.exe
 
-all: $(INSTALL)
+all: $(INSTALL) sysinfo.exe
 
 clean:
-	-rm $(FILES) $(INSTALL)
+	-rm $(FILES) $(INSTALL) sysinfo.exe
 
 $(INSTALL): patchqpf.nsi $(FILES)
 	strip PatchQPF.exe
@@ -16,6 +16,9 @@ $(INSTALL): patchqpf.nsi $(FILES)
 	makensis patchqpf.nsi
 
 PatchQPF.exe: patchqpf.c
+	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
+
+sysinfo.exe: sysinfo.c
 	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
 
 pqpf014c.dll: dll.c
