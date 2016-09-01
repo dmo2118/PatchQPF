@@ -1,13 +1,12 @@
 CFLAGS=-DUNICODE -D_UNICODE -Wall -static-libgcc -municode
-LDLIBS=-lpsapi
 
-FILES=PatchQPF.exe pqpf014c.dll pqpf8664.dll
+FILES=PatchQPF.exe pqpf014c.dll pqpf8664.dll sysinfo.exe
 INSTALL=PatchQPF-install.exe
 
-all: $(INSTALL) sysinfo.exe
+all: $(INSTALL)
 
 clean:
-	-rm $(FILES) $(INSTALL) sysinfo.exe
+	-rm $(FILES) $(INSTALL)
 
 $(INSTALL): patchqpf.nsi $(FILES)
 	strip PatchQPF.exe
@@ -16,13 +15,13 @@ $(INSTALL): patchqpf.nsi $(FILES)
 	makensis patchqpf.nsi
 
 PatchQPF.exe: patchqpf.c
-	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
+	$(CC) $(CFLAGS) $^ -lpsapi -o $@
 
 sysinfo.exe: sysinfo.c
-	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
+	$(CC) -mwindows $(CFLAGS) $^ -o $@
 
 pqpf014c.dll: dll.c
-	PATH=/mingw32/bin $(CC) $(CFLAGS) -shared $^ $(LDLIBS) -o $@ 
+	PATH=/mingw32/bin $(CC) $(CFLAGS) -shared $^ -lpsapi -o $@
 
 pqpf8664.dll: dll.c
-	PATH=/mingw64/bin $(CC) $(CFLAGS) -shared $^ $(LDLIBS) -o $@ 
+	PATH=/mingw64/bin $(CC) $(CFLAGS) -shared $^ -lpsapi -o $@
