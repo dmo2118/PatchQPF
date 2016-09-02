@@ -1,5 +1,6 @@
-System,With (h:mm),Without,Important,Optional,Days since update,QPF
-"Windows 7 (VirtualBox 5.1.4, Xeon X5650, 1 core)",1:03,3:50,83,28,495,3579545
-"Windows 7 (VirtualBox 5.1.4, Xeon X5650, 1 core)",0:56,3:54,83,28,495,3579545
-"Windows Vista (VirtualBox 5.1.4, Xeon X5650, 1 core)",8:09,30:53,6,30,19,3579545
-Windows 7 (Core 2 T7500),2:53,12:35,8,10,46,14318180
+Windows,32/64-bit,System,Claims HPET?,With PatchQPF (h:mm),Without,Important,Optional,Days since update,QPF
+7,32,"VirtualBox 5.1.4, Xeon X5650, 1 core",FALSE,1:03,3:50,83,28,495,3579545
+7,32,"VirtualBox 5.1.4, Xeon X5650, 1 core",FALSE,0:56,3:54,83,28,495,3579545
+Vista,32,"VirtualBox 5.1.4, Xeon X5650, 1 core",FALSE,8:09,30:53,6,30,19,3579545
+7,64,Core 2 T7500,FALSE,2:53,12:35,8,10,46,14318180
+Vista,32,Athlon 64 X2 5600+,TRUE,14:47,35:30,50,5,261,25000000
