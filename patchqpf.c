@@ -310,7 +310,7 @@ static DWORD _puts(const TCHAR *s, DWORD n)
 	return written;
 }
 
-int main()
+int _tmain()
 {
 	static const SERVICE_TABLE_ENTRY service_table[] = 
 	{

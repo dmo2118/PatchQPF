@@ -1,6 +1,9 @@
 *.c      text
 *.h      text
+
+*.csv    text
 *.md     text
+
 *.nsi    text eol=crlf
 *.rtf    text eol=crlf
 

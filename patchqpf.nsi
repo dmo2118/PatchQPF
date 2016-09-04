@@ -1,5 +1,8 @@
 ; !cd bin
 
+; TODO: Use NSIS Simple Service Plugin
+; TODO: Just call the uninstaller during install.
+
 OutFile PatchQPF-install.exe
 RequestExecutionLevel admin
 

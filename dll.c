@@ -9,7 +9,7 @@ EnumProcessModules (PSAPI) -> Windows NT 4.
 CreateRemoteThread -> Windows NT
 */
 
-/* 
+/*
 Usage: rundll32.exe pqpf????.dll,apply process_id
 No UI, because we're normally running as a subprocess for a Windows service.
 */
@@ -75,6 +75,107 @@ static void *_rva(IMAGE_DOS_HEADER *dos_header, ULONG_PTR rva)
 	return (BYTE *)dos_header + rva;
 }
 
+void _patch()
+{
+#if 0
+/* #ifdef _M_IX86 */
+	// TODO: How do we detect hotpatched executables, anyway?
+
+	// TODO: Other CPUs.
+	WORD *old_qpf = (WORD *)(BOOL (WINAPI *)())QueryPerformanceFrequency;
+	WORD pad = *old_qpf;
+
+	const WORD mov_edi_edi = 0xFF8B, jmp_n5 = 0xF9EB;
+
+	if(pad == mov_edi_edi || pad == jmp_n5)
+	{
+		DWORD old_protect;
+		VirtualProtect((BYTE *)old_qpf - 5, 7, PAGE_EXECUTE_READWRITE, &old_protect);
+
+		// TODO: kernel32.dll hotpatching is only available for x86-32.
+		((BYTE *)old_qpf)[-5] = 0xE9; // JMP w/ full displacement
+		((DWORD *)old_qpf)[-1] = (DWORD)_qpf_fast - (DWORD)old_qpf;
+		*old_qpf = jmp_n5;
+
+		VirtualProtect((BYTE *)old_qpf - 5, 7, old_protect, &old_protect);
+	}
+#endif
+
+	HMODULE *modules;
+	DWORD modules_size, i;
+
+	// TODO: Error handling
+	_enum_modules(GetCurrentProcess(), &modules, &modules_size);
+
+	/* Windows by this point has already validated that these structures are OK. */
+	for(i = 0; i != modules_size; ++i)
+	{
+		IMAGE_DOS_HEADER *hdr = (IMAGE_DOS_HEADER *)modules[i];
+		if(hdr->e_magic == IMAGE_DOS_SIGNATURE)
+		{
+			IMAGE_NT_HEADERS *nt_header = (IMAGE_NT_HEADERS *)_rva(hdr, hdr->e_lfanew);
+			if(
+				nt_header->Signature == IMAGE_NT_SIGNATURE &&
+				nt_header->FileHeader.SizeOfOptionalHeader == sizeof(IMAGE_OPTIONAL_HEADER) &&
+				nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress)
+			{
+				IMAGE_IMPORT_DESCRIPTOR *import_desc = (IMAGE_IMPORT_DESCRIPTOR *)_rva(
+					hdr,
+					nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+
+				while(import_desc->Name)
+				{
+					CHAR *name = _rva(hdr, import_desc->Name);
+					if(!lstrcmpiA(name, "kernel32.dll"))
+					{
+						SIZE_T import = 0;
+						IMAGE_THUNK_DATA *hint_name = (IMAGE_THUNK_DATA *)_rva(
+							hdr, 
+							import_desc->OriginalFirstThunk);
+
+						IMAGE_THUNK_DATA *thunk = (IMAGE_THUNK_DATA *)_rva(hdr, import_desc->FirstThunk);
+
+						while(hint_name[import].u1.AddressOfData)
+						{
+							IMAGE_IMPORT_BY_NAME *import_name = (IMAGE_IMPORT_BY_NAME *)_rva(
+								hdr,
+								hint_name[import].u1.AddressOfData);
+
+							if(!lstrcmpA((CHAR *)import_name->Name, "QueryPerformanceFrequency"))
+							{
+								/* TODO: SEH? */
+								DWORD old_protect;
+								if(VirtualProtect(
+									&thunk[import],
+									sizeof(thunk[import]),
+									PAGE_EXECUTE_READWRITE,
+									&old_protect))
+								{
+									thunk[import].u1.Function = (ptrdiff_t)_qpf_fast;
+									VirtualProtect(&thunk[import], sizeof(thunk[import]), old_protect, &old_protect);
+								}
+							}
+
+							++import;
+						}
+					}
+
+					++import_desc;
+				}
+			}
+		}
+	}
+
+	HeapFree(_heap, 0, modules);
+
+#ifndef NDEBUG
+	{
+		LARGE_INTEGER frequency;
+		QueryPerformanceFrequency(&frequency);
+	}
+#endif
+}
+
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, void *reserved)
 {
 	switch(reason)
@@ -94,107 +195,11 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, void *reserved)
 		if(!_qpf_result)
 			_qpf_error = GetLastError();
 
-#if 0
-/* #ifdef _M_IX86 */
-		// TODO: How do we detect hotpatched executables, anyway?
+		_patch();
+		break;
 
-		{
-			// TODO: Other CPUs.
-			WORD *old_qpf = (WORD *)(BOOL (WINAPI *)())QueryPerformanceFrequency;
-			WORD pad = *old_qpf;
-
-			const WORD mov_edi_edi = 0xFF8B, jmp_n5 = 0xF9EB;
-
-			if(pad == mov_edi_edi || pad == jmp_n5)
-			{
-				DWORD old_protect;
-				VirtualProtect((BYTE *)old_qpf - 5, 7, PAGE_EXECUTE_READWRITE, &old_protect);
-
-				// TODO: kernel32.dll hotpatching is only available for x86-32.
-				((BYTE *)old_qpf)[-5] = 0xE9; // JMP w/ full displacement
-				((DWORD *)old_qpf)[-1] = (DWORD)_qpf_fast - (DWORD)old_qpf;
-				*old_qpf = jmp_n5;
-
-				VirtualProtect((BYTE *)old_qpf - 5, 7, old_protect, &old_protect);
-			}
-		}
-#endif
-
-		{
-			HMODULE *modules;
-			DWORD modules_size, i;
-
-			// TODO: Error handling
-			_enum_modules(GetCurrentProcess(), &modules, &modules_size);
-
-			/* Windows by this point has already validated that these structures are OK. */
-			for(i = 0; i != modules_size; ++i)
-			{
-				IMAGE_DOS_HEADER *hdr = (IMAGE_DOS_HEADER *)modules[i];
-				if(hdr->e_magic == IMAGE_DOS_SIGNATURE)
-				{
-					IMAGE_NT_HEADERS *nt_header = (IMAGE_NT_HEADERS *)_rva(hdr, hdr->e_lfanew);
-					if(
-						nt_header->Signature == IMAGE_NT_SIGNATURE && 
-						nt_header->FileHeader.SizeOfOptionalHeader == sizeof(IMAGE_OPTIONAL_HEADER) &&
-						nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress)
-					{
-						IMAGE_IMPORT_DESCRIPTOR *import_desc = (IMAGE_IMPORT_DESCRIPTOR *)_rva(
-							hdr, 
-							nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
-
-						while(import_desc->Name)
-						{
-							CHAR *name = _rva(hdr, import_desc->Name);
-							if(!lstrcmpiA(name, "kernel32.dll"))
-							{
-								SIZE_T import = 0;
-								IMAGE_THUNK_DATA *hint_name = (IMAGE_THUNK_DATA *)_rva(
-									hdr, 
-									import_desc->OriginalFirstThunk);
-
-								IMAGE_THUNK_DATA *thunk = (IMAGE_THUNK_DATA *)_rva(hdr, import_desc->FirstThunk);
-
-								while(hint_name[import].u1.AddressOfData)
-								{
-									IMAGE_IMPORT_BY_NAME *import_name = (IMAGE_IMPORT_BY_NAME *)_rva(
-										hdr, 
-										hint_name[import].u1.AddressOfData);
-
-									if(!lstrcmpA((CHAR *)import_name->Name, "QueryPerformanceFrequency"))
-									{
-										DWORD old_protect;
-										if(VirtualProtect(
-											&thunk[import], 
-											sizeof(thunk[import]), 
-											PAGE_EXECUTE_READWRITE, 
-											&old_protect))
-										{
-											thunk[import].u1.Function = (ptrdiff_t)_qpf_fast;
-											VirtualProtect(&thunk[import], sizeof(thunk[import]), old_protect, &old_protect);
-										}
-									}
-
-									++import;
-								}
-							}
-
-							++import_desc;
-						}
-					}
-				}
-			}
-
-			HeapFree(_heap, 0, modules);
-		}
-
-#ifndef NDEBUG
-		{
-			LARGE_INTEGER frequency;
-			QueryPerformanceFrequency(&frequency);
-		}
-#endif
-
+	case DLL_THREAD_ATTACH:
+		_patch();
 		break;
 	}
 
