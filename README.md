@@ -40,7 +40,11 @@ with Ctrl-V into Paint.)
 Note that this only affects the time it takes to check for updates. This won't
 make actually installing updates significantly faster.
 
-If you've timed the Windows Update check both with and without PatchQPF,
+PatchQPF is a Windows service. Starting the service applies the patch, but
+stopping the service does not remove the patch. To disable PatchQPF, uninstall
+it.
+
+If you've timed the Windows Update check both without and with PatchQPF,
 consider adding a line to [`stats.csv`](stats.csv) and issuing a pull request.
 
 How it works
