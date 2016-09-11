@@ -330,75 +330,114 @@ __declspec(dllexport) void applyW(HWND wnd, HINSTANCE instance, LPWSTR cmd_line,
 			}
 			else
 			{
-				// HMODULE ext_kernel32;
+				HMODULE ext_kernel32 = NULL, int_kernel32 = GetModuleHandle(TEXT("kernel32.dll"));
 
-				// TODO: Compensate for ASLR.
-				// TODO: Errors!
-				WCHAR dllpath[MAX_PATH];
-				size_t dllpath_bytes = (GetModuleFileName(_instance, dllpath, MAX_PATH) + 1) * sizeof(WCHAR);
-
-				void *ext_dllname = VirtualAllocEx(proc.process, NULL, dllpath_bytes, MEM_COMMIT, PAGE_READWRITE);
-				if(!ext_dllname)
+				if(!int_kernel32)
 				{
 					result = _last_error();
 				}
 				else
 				{
-					SIZE_T bytes_written;
-					if(!WriteProcessMemory(proc.process, ext_dllname, dllpath, dllpath_bytes, &bytes_written))
+					HMODULE *modules;
+					DWORD modules_size;
+
+					result = _enum_modules(proc.process, &modules, &modules_size);
+					if(!result)
+					{
+						size_t i;
+						result = ERROR_MOD_NOT_FOUND;
+						for(i = 0; i != modules_size; ++i)
+						{
+							TCHAR base_name[14];
+
+							/* GetModuleBaseName truncates module names without warning. */
+							if(GetModuleBaseName(proc.process, modules[i], base_name, arraysize(base_name)))
+							{
+								if(!lstrcmpi(base_name, TEXT("kernel32.dll")))
+								{
+									result = ERROR_SUCCESS;
+									ext_kernel32 = modules[i];
+									break;
+								}
+							}
+						}
+
+						HeapFree(_heap, 0, modules);
+					}
+				}
+
+				if(!result)
+				{
+					// TODO: Errors!
+					WCHAR dllpath[MAX_PATH];
+					size_t dllpath_bytes = (GetModuleFileName(_instance, dllpath, MAX_PATH) + 1) * sizeof(WCHAR);
+
+					void *ext_dllname = VirtualAllocEx(proc.process, NULL, dllpath_bytes, MEM_COMMIT, PAGE_READWRITE);
+					if(!ext_dllname)
 					{
 						result = _last_error();
 					}
-					else if(bytes_written != dllpath_bytes)
-					{
-						result = ERROR_PARTIAL_COPY;
-					}
 					else
 					{
-						HANDLE thread = CreateRemoteThread(
-							proc.process, 
-							NULL, 
-							0, 
-							(LPTHREAD_START_ROUTINE)LoadLibraryW, 
-							ext_dllname, 
-							0, 
-							NULL);
-
-						if(!thread)
+						SIZE_T bytes_written;
+						if(!WriteProcessMemory(proc.process, ext_dllname, dllpath, dllpath_bytes, &bytes_written))
 						{
 							result = _last_error();
 						}
+						else if(bytes_written != dllpath_bytes)
+						{
+							result = ERROR_PARTIAL_COPY;
+						}
 						else
 						{
-							DWORD exit_code;
+							HANDLE thread = CreateRemoteThread(
+								proc.process,
+								NULL,
+								0,
+								(LPTHREAD_START_ROUTINE)(
+									(SIZE_T)(LPTHREAD_START_ROUTINE)LoadLibraryW +
+									(SIZE_T)ext_kernel32 -
+									(SIZE_T)int_kernel32),
+								ext_dllname,
+								0,
+								NULL);
 
-							WaitForSingleObject(thread, INFINITE);
-
-							GetExitCodeThread(thread, &exit_code);
-
-							if(!exit_code)
+							if(!thread)
 							{
-								/*
-								THREAD_BASIC_INFORMATION thread_basic_information;
-								NtQueryInformationThread(
-									thread, 
-									ThreadBasicInformation, 
-									&thread_basic_information, 
-									sizeof(thread_basic_information), 
-									NULL);
-								*/
-								result = EVENT_E_FIRST; /* TODO: :( */
+								result = _last_error();
 							}
 							else
 							{
-								result = ERROR_SUCCESS;
+								DWORD exit_code;
+
+								WaitForSingleObject(thread, INFINITE);
+
+								GetExitCodeThread(thread, &exit_code);
+
+								if(!exit_code)
+								{
+									/*
+									THREAD_BASIC_INFORMATION thread_basic_information;
+									NtQueryInformationThread(
+										thread,
+										ThreadBasicInformation,
+										&thread_basic_information,
+										sizeof(thread_basic_information),
+										NULL);
+									*/
+									result = EVENT_E_FIRST; /* TODO: :( */
+								}
+								else
+								{
+									result = ERROR_SUCCESS;
+								}
+
+								CloseHandle(thread);
 							}
-
-							CloseHandle(thread);
 						}
-					}
 
-					VirtualFreeEx(proc.process, ext_dllname, 0, MEM_RELEASE);
+						VirtualFreeEx(proc.process, ext_dllname, 0, MEM_RELEASE);
+					}
 				}
 			}
 		}

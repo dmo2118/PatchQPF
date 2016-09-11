@@ -26,16 +26,25 @@ Before PatchQPF is applied, you should see something like:
 
 Best results seem to occur on hardware released ~2010 or earlier.
 
+So how do I download this?
+--------------------------
+
+<div style="text-align: center"><a href="releases"><img src="download.png" alt="Download!"></a></div>
+
+(Or click [**#** releases](releases) near the top of the page.)
+
 Miscellanea
 -----------
 
+Expect a warning from your antivirus software.
+
 This code is so fresh that you should probably
-[drop me a line](mailto:dmo2118%20%d0%90%d0%a2%20gmail.com) whether or not
-it works, and let me know what version of Windows you have, and whether it's a
-32 or 64-bit installation. And if something goes wrong, I'd also like to know
-what's you've got in the "System devices" category in Device Manager. (Protip:
-take a screen shot in Windows with the Print Screen key, and paste the image
-with Ctrl-V into Paint.)
+[drop me a line](mailto:dmo2118@gmail.com) whether or not it works, and let me
+know what version of Windows you have, and whether it's a 32 or 64-bit
+installation. And if something goes wrong, I'd also like to know what's you've
+got in the "System devices" category in Device Manager. (Protip: take a screen
+shot in Windows with the Print Screen key, and paste the image with Ctrl-V into
+Paint.)
 
 Note that this only affects the time it takes to check for updates. This won't
 make actually installing updates significantly faster.
