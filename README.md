@@ -21,6 +21,7 @@ Look for the following symptoms:
   shows the CPU time for `svchost.exe` being spent mostly as kernel time.
 
 Before PatchQPF is applied, you should see something like:
+
 ![](slow-system.png)
 
 Best results seem to occur on hardware released ~2010 or earlier.
