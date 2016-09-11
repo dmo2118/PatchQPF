@@ -9,7 +9,7 @@ clean:
 	-rm $(FILES) $(INSTALL)
 
 $(INSTALL): patchqpf.nsi $(FILES)
-	strip PatchQPF.exe
+	strip PatchQPF.exe sysinfo.exe
 	PATH=/mingw32/bin strip pqpf014c.dll
 	PATH=/mingw64/bin strip pqpf8664.dll
 	makensis patchqpf.nsi
