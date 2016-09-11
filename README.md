@@ -29,9 +29,10 @@ Best results seem to occur on hardware released ~2010 or earlier.
 So how do I download this?
 --------------------------
 
-<div style="text-align: center"><a href="releases"><img src="download.png" alt="Download!"></a></div>
+[![Download!](download.png)](https://github.com/dmo2118/PatchQPF/releases)
 
-(Or click [**#** releases](releases) near the top of the page.)
+(Or click [**(#)** releases](https://github.com/dmo2118/PatchQPF/releases) near
+the top of the page.)
 
 Miscellanea
 -----------
