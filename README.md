@@ -10,6 +10,16 @@ Warning!
 Scroll down to the part at the bottom where it talks about the warranty. Read
 that part. Out loud. And consider yourself warned.
 
+This has never been tested on:
+
+* Windows Server, any version
+* Windows 8
+* Windows 8.1
+* Windows 2000 or earlier
+* Windows Me or earlier
+
+See [`stats.csv`](stats.csv) for various test results.
+
 Will this help me?
 ------------------
 
@@ -84,6 +94,20 @@ Building from source
 
 For now, [MSYS2](https://msys2.github.io/) is required. Once you have that, from
 a MinGW-w64 Win32 Shell, type `mingw32-make` from the source code root.
+
+Acknowledgement
+---------------
+
+In fairness, I am not the first person to either
+[find](http://www.askwoody.com/2016/checking-for-updates-still-takes-forever/comment-page-1/#comment-80228)
+or
+[fix](http://bertrand.deo.free.fr/TEMP/PatchWU.zip) this issue. I probably
+should have done the necessary Google searches before I started on this;
+nevertheless, the deed is done. For what it's worth though, with PatchQPF you
+can just install it and forget about it; no further action is required.
+
+Also, consider checking out <http://wu.krelay.de/en/>: this is a list of
+updates that makes the Windows Update check take minutes instead of hours.
 
 License
 -------
