@@ -84,6 +84,8 @@ approximately 2-4x, depending on hardware.
 `PatchQPF.exe` hooks into the Windows Update process and replaces Microsoft's
 `QueryPerformanceFrequency` with its own, faster implementation.
 
+PatchQPF takes effect as soon as it is installed.
+
 How can it be this bad? Doesn't Microsoft actually use their own software?
 --------------------------------------------------------------------------
 

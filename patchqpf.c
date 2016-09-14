@@ -133,115 +133,116 @@ static unsigned __stdcall _service_thread(void *self_raw)
 		/* 3. If there's a new PID, hook the process. */
 		if(new_process_id != process_id)
 		{
-			struct patchqpf_process proc;
-			DWORD result;
-			
 			process_id = new_process_id;
 
-			result = patchqpf_process_new(&proc, process_id, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ);
-			if(!result)
+			if(process_id)
 			{
-				WORD machine;
-				result = patchqpf_machine_from_process(proc.process, &machine); /* TODO: This doesn't work with 32-bit reading 64-bit. */
-
-				if(result == ERROR_PARTIAL_COPY)
-				{
-					/* TODO: GetProcAddress & LoadLibrary for this. */
-					BOOL wow64;
-					if(IsWow64Process(proc.process, &wow64) && !wow64)
-					{
-						static const WORD machine_map[] =
-						{
-							IMAGE_FILE_MACHINE_I386, 
-							IMAGE_FILE_MACHINE_R4000,
-							IMAGE_FILE_MACHINE_ALPHA,
-							IMAGE_FILE_MACHINE_POWERPC,
-							IMAGE_FILE_MACHINE_SH3,
-							IMAGE_FILE_MACHINE_ARM,
-							IMAGE_FILE_MACHINE_IA64,
-							IMAGE_FILE_MACHINE_ALPHA64,
-							IMAGE_FILE_MACHINE_UNKNOWN, // MSIL
-							IMAGE_FILE_MACHINE_AMD64,
-							IMAGE_FILE_MACHINE_I386,
-						};
-
-						if(system_info.wProcessorArchitecture < arraysize(machine_map))
-						{
-							machine = machine_map[system_info.wProcessorArchitecture];
-							if(machine)
-								result = ERROR_SUCCESS;
-						}					
-					}
-				}
-
+				struct patchqpf_process proc;
+				DWORD result = patchqpf_process_new(&proc, process_id, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ);
 				if(!result)
 				{
-					size_t i = 0;
-					for(;;)
+					WORD machine;
+					result = patchqpf_machine_from_process(proc.process, &machine); /* TODO: This doesn't work with 32-bit reading 64-bit. */
+
+					if(result == ERROR_PARTIAL_COPY)
 					{
-						if(i == arraysize(patchqpf_compat_map))
+						/* TODO: GetProcAddress & LoadLibrary for this. */
+						BOOL wow64;
+						if(IsWow64Process(proc.process, &wow64) && !wow64)
 						{
-							result = ERROR_EXE_MACHINE_TYPE_MISMATCH;
-							break;
-						}
-
-						if(patchqpf_compat_map[i].machine == machine)
-						{
-							size_t j = 0;
-							for(;;)
+							static const WORD machine_map[] =
 							{
-								TCHAR dllname[13];
+								IMAGE_FILE_MACHINE_I386,
+								IMAGE_FILE_MACHINE_R4000,
+								IMAGE_FILE_MACHINE_ALPHA,
+								IMAGE_FILE_MACHINE_POWERPC,
+								IMAGE_FILE_MACHINE_SH3,
+								IMAGE_FILE_MACHINE_ARM,
+								IMAGE_FILE_MACHINE_IA64,
+								IMAGE_FILE_MACHINE_ALPHA64,
+								IMAGE_FILE_MACHINE_UNKNOWN, // MSIL
+								IMAGE_FILE_MACHINE_AMD64,
+								IMAGE_FILE_MACHINE_I386,
+							};
 
-								if(j == patchqpf_compat_map[i].compat_size)
-								{
-									result = ERROR_FILE_NOT_FOUND;
-									break;
-								}
+							if(system_info.wProcessorArchitecture < arraysize(machine_map))
+							{
+								machine = machine_map[system_info.wProcessorArchitecture];
+								if(machine)
+									result = ERROR_SUCCESS;
+							}
+						}
+					}
 
-								wsprintf(dllname, L"pqpf%.4x.dll", patchqpf_compat_map[i].compat[j]);
-								if(GetFileAttributes(dllname) != INVALID_FILE_ATTRIBUTES)
-								{
-									TCHAR cmd[64];
-									STARTUPINFO si;
-									PROCESS_INFORMATION pi;
-
-									/* Rundll32 has the smarts to handle both 32 and 64-bit DLLs. */
-									wsprintf(cmd, L"rundll32.exe %s,apply %d", dllname, process_id);
-
-									ZeroMemory(&si, sizeof(si));
-									si.cb = sizeof(si);
-									if(CreateProcess(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
-									{
-										DWORD exit_code;
-										WaitForSingleObject(pi.hProcess, INFINITE);
-										GetExitCodeProcess(pi.hProcess, &exit_code);
-
-										if(!exit_code)
-										{
-											result = ERROR_SUCCESS;
-											break;
-										}
-
-										CloseHandle(pi.hProcess);
-										CloseHandle(pi.hThread);
-									}
-								}
-
-								++j;
+					if(!result)
+					{
+						size_t i = 0;
+						for(;;)
+						{
+							if(i == arraysize(patchqpf_compat_map))
+							{
+								result = ERROR_EXE_MACHINE_TYPE_MISMATCH;
+								break;
 							}
 
-							break;
-						}
+							if(patchqpf_compat_map[i].machine == machine)
+							{
+								size_t j = 0;
+								for(;;)
+								{
+									TCHAR dllname[13];
 
-						++i;
+									if(j == patchqpf_compat_map[i].compat_size)
+									{
+										result = ERROR_FILE_NOT_FOUND;
+										break;
+									}
+
+									wsprintf(dllname, L"pqpf%.4x.dll", patchqpf_compat_map[i].compat[j]);
+									if(GetFileAttributes(dllname) != INVALID_FILE_ATTRIBUTES)
+									{
+										TCHAR cmd[64];
+										STARTUPINFO si;
+										PROCESS_INFORMATION pi;
+
+										/* Rundll32 has the smarts to handle both 32 and 64-bit DLLs. */
+										wsprintf(cmd, L"rundll32.exe %s,apply %d", dllname, process_id);
+
+										ZeroMemory(&si, sizeof(si));
+										si.cb = sizeof(si);
+										if(CreateProcess(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+										{
+											DWORD exit_code;
+											WaitForSingleObject(pi.hProcess, INFINITE);
+											GetExitCodeProcess(pi.hProcess, &exit_code);
+
+											if(!exit_code)
+											{
+												result = ERROR_SUCCESS;
+												break;
+											}
+
+											CloseHandle(pi.hProcess);
+											CloseHandle(pi.hThread);
+										}
+									}
+
+									++j;
+								}
+
+								break;
+							}
+
+							++i;
+						}
 					}
+
+					patchqpf_process_delete(&proc);
 				}
 
-				patchqpf_process_delete(&proc);
+				if(result)
+					return _stop(self, result);
 			}
-
-			if(result)
-				return _stop(self, result);
 		}
 	}
 
