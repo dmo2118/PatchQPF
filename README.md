@@ -41,6 +41,8 @@ So how do I download this?
 
 [![Download!](download.png)](https://github.com/dmo2118/PatchQPF/releases)
 
+(And then download PatchQPF-install.exe.)
+
 (Or click [**(#)** releases](https://github.com/dmo2118/PatchQPF/releases) near
 the top of the page.)
 
